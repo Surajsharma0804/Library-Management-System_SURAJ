@@ -100,6 +100,15 @@ const StudentsPage = (() => {
     function showRegisterDialog() {
         const form = document.createElement('div');
         form.innerHTML = `
+            <div id="reg-error" class="hidden" style="
+                background: var(--red-bg);
+                border: 1px solid rgba(196,77,56,0.2);
+                border-radius: var(--radius-sm);
+                padding: 10px 14px;
+                margin-bottom: 14px;
+                font-size: 0.8125rem;
+                color: var(--red);
+            "></div>
             <div class="form-group">
                 <label class="form-label">First Name *</label>
                 <input class="form-input" id="reg-fn" placeholder="First name">
@@ -150,9 +159,15 @@ const StudentsPage = (() => {
         const em = document.getElementById('reg-em').value.trim();
         const dp = document.getElementById('reg-dp').value.trim();
         const co = document.getElementById('reg-co').value.trim();
+        const errBox = document.getElementById('reg-error');
+
+        // Clear previous error
+        errBox.classList.add('hidden');
+        errBox.textContent = '';
 
         if (!fn || !ln || !em || !dp || !co) {
-            Toast.error('Please fill in all required fields');
+            errBox.textContent = 'Please fill in all required fields (marked with *).';
+            errBox.classList.remove('hidden');
             return;
         }
 
@@ -200,7 +215,11 @@ const StudentsPage = (() => {
 
             await loadStudents();
         } catch (e) {
-            Toast.error(e.message);
+            // Show error inline in the modal so user can fix the issue
+            const msg = e.message || 'Failed to register student';
+            errBox.textContent = msg;
+            errBox.classList.remove('hidden');
+            Toast.error(msg);
         }
     }
 

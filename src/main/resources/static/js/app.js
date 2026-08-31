@@ -88,8 +88,13 @@ const App = (() => {
 
     /** Initializes the app — checks auth state and routes. */
     function init() {
-        const hash = window.location.hash.slice(1) || 'dashboard';
-        navigate(hash);
+        const hash = window.location.hash.slice(1);
+        // If no session, go directly to login without trying dashboard (avoids 401 toast)
+        if (!Auth.isLoggedIn()) {
+            navigate('login');
+        } else {
+            navigate(hash || 'dashboard');
+        }
 
         window.addEventListener('hashchange', () => {
             const h = window.location.hash.slice(1);

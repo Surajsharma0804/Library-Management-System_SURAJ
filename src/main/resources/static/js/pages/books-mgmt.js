@@ -101,6 +101,15 @@ const BooksMgmtPage = (() => {
     function showAddDialog() {
         const form = document.createElement('div');
         form.innerHTML = `
+            <div id="add-book-error" class="hidden" style="
+                background: var(--red-bg);
+                border: 1px solid rgba(196,77,56,0.2);
+                border-radius: var(--radius-sm);
+                padding: 10px 14px;
+                margin-bottom: 14px;
+                font-size: 0.8125rem;
+                color: var(--red);
+            "></div>
             <div class="form-group">
                 <label class="form-label">Title *</label>
                 <input class="form-input" id="book-title" placeholder="Book title">
@@ -112,6 +121,9 @@ const BooksMgmtPage = (() => {
             <div class="form-group">
                 <label class="form-label">ISBN *</label>
                 <input class="form-input" id="book-isbn" placeholder="e.g. 978-3-16-148410-0">
+                <small style="color: var(--text-muted); font-size: 0.73rem; margin-top: 4px; display: block;">
+                    Enter a valid 13-digit ISBN with correct checksum
+                </small>
             </div>
             <div class="form-group">
                 <label class="form-label">Quantity *</label>
@@ -129,9 +141,15 @@ const BooksMgmtPage = (() => {
                     const author = document.getElementById('book-author').value.trim();
                     const isbn = document.getElementById('book-isbn').value.trim();
                     const qty = parseInt(document.getElementById('book-qty').value) || 1;
+                    const errBox = document.getElementById('add-book-error');
+
+                    // Clear previous error
+                    errBox.classList.add('hidden');
+                    errBox.textContent = '';
 
                     if (!title || !author || !isbn) {
-                        Toast.error('Title, author, and ISBN are required');
+                        errBox.textContent = 'Title, author, and ISBN are required.';
+                        errBox.classList.remove('hidden');
                         return;
                     }
 
@@ -141,7 +159,11 @@ const BooksMgmtPage = (() => {
                         Modal.close();
                         await loadBooks();
                     } catch (e) {
-                        Toast.error(e.message);
+                        // Show error inline in the modal so user can fix the issue
+                        const msg = e.message || 'Failed to add book';
+                        errBox.textContent = msg;
+                        errBox.classList.remove('hidden');
+                        Toast.error(msg);
                     }
                 }}
             ]
