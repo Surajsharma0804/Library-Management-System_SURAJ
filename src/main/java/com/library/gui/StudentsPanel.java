@@ -386,4 +386,6 @@ public final class StudentsPanel extends JPanel {
         l.setFont(AppTheme.BODY_B);
         l.setForeground(AppTheme.fg());
         return l;
+    }
 }
+
