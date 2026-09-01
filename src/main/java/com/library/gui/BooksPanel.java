@@ -10,6 +10,8 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.List;
@@ -89,15 +91,30 @@ public final class BooksPanel extends JPanel {
         addBtn.setPreferredSize(new Dimension(120, 38));
         addBtn.addActionListener(e -> addBook());
 
-        JPanel acts = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        JButton editBtn = AppTheme.secondaryBtn("Edit Book");
+        editBtn.setPreferredSize(new Dimension(110, 38));
+        editBtn.addActionListener(e -> editBook());
+
+        JButton removeBtn = AppTheme.dangerBtn("Remove");
+        removeBtn.setPreferredSize(new Dimension(100, 38));
+        removeBtn.addActionListener(e -> removeBook());
+
+        // Two-row layout: title on top, actions below
+        JPanel hdr2 = new JPanel(new BorderLayout(0, 10));
+        hdr2.setOpaque(false);
+        hdr2.add(title, BorderLayout.NORTH);
+
+        JPanel acts = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
         acts.setOpaque(false);
         acts.add(searchField);
         acts.add(deweyField);
         acts.add(statusCombo);
+        acts.add(editBtn);
+        acts.add(removeBtn);
         acts.add(addBtn);
+        hdr2.add(acts, BorderLayout.SOUTH);
 
-        hdr.add(title, BorderLayout.WEST);
-        hdr.add(acts, BorderLayout.EAST);
+        hdr = hdr2;
 
         model = new DefaultTableModel(COLS, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
@@ -147,6 +164,27 @@ public final class BooksPanel extends JPanel {
                 pill.setOpaque(false);
             }
             return pill;
+        });
+
+        // Right-click context menu
+        JPopupMenu popup = new JPopupMenu();
+        JMenuItem editItem = new JMenuItem("Edit Book");
+        editItem.addActionListener(e -> editBook());
+        JMenuItem removeItem = new JMenuItem("Remove Book");
+        removeItem.addActionListener(e -> removeBook());
+        popup.add(editItem);
+        popup.addSeparator();
+        popup.add(removeItem);
+
+        table.addMouseListener(new MouseAdapter() {
+            @Override public void mousePressed(MouseEvent e) { showPopup(e); }
+            @Override public void mouseReleased(MouseEvent e) { showPopup(e); }
+            private void showPopup(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    int row = table.rowAtPoint(e.getPoint());
+                    if (row >= 0) { table.setRowSelectionInterval(row, row); popup.show(table, e.getX(), e.getY()); }
+                }
+            }
         });
 
         JPanel tbl = new JPanel(new BorderLayout());
@@ -274,10 +312,9 @@ public final class BooksPanel extends JPanel {
         if (JOptionPane.showConfirmDialog(this, f, "Add New Book Record",
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
             try {
-                String qtyText = qt.getText().trim();
                 int quantity;
                 try {
-                    quantity = Integer.parseInt(qtyText);
+                    quantity = Integer.parseInt(qt.getText().trim());
                     if (quantity <= 0) throw new NumberFormatException("non-positive");
                 } catch (NumberFormatException nfe) {
                     AppTheme.error(this, "Total Quantity must be a positive whole number.");
@@ -293,6 +330,67 @@ public final class BooksPanel extends JPanel {
             } catch (Exception ex) {
                 AppTheme.error(this, ex.getMessage());
             }
+        }
+    }
+
+    private void editBook() {
+        if (session == null) return;
+        int row = table.getSelectedRow();
+        if (row < 0) { AppTheme.error(this, "Please select a book first."); return; }
+
+        String bookId = (String) model.getValueAt(row, 1);
+        Book book = facade.books().findById(bookId);
+        if (book == null) { AppTheme.error(this, "Book not found."); return; }
+
+        JPanel f = new JPanel(new GridLayout(0, 2, 12, 12));
+        f.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+
+        JTextField ti = AppTheme.textField(15); ti.setText(book.getTitle());
+        JTextField au = AppTheme.textField(15); au.setText(book.getAuthor());
+        JTextField is = AppTheme.textField(15); is.setText(book.getIsbn() != null ? book.getIsbn() : "");
+        JTextField pu = AppTheme.textField(15); pu.setText(book.getPublisher() != null ? book.getPublisher() : "");
+        JTextField ca = AppTheme.textField(15); ca.setText(book.getCategory() != null ? book.getCategory() : "");
+
+        f.add(lbl("Title:"));     f.add(ti);
+        f.add(lbl("Author:"));    f.add(au);
+        f.add(lbl("ISBN:"));      f.add(is);
+        f.add(lbl("Publisher:")); f.add(pu);
+        f.add(lbl("Category:")); f.add(ca);
+
+        if (JOptionPane.showConfirmDialog(this, f, "Edit Book — " + bookId,
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
+            try {
+                book.setTitle(ti.getText().trim());
+                book.setAuthor(au.getText().trim());
+                book.setIsbn(is.getText().trim());
+                book.setPublisher(pu.getText().trim());
+                book.setCategory(ca.getText().trim());
+                facade.books().updateBook(session, book);
+                refresh(session);
+                AppTheme.success(this, "Book updated successfully.");
+            } catch (Exception ex) {
+                AppTheme.error(this, ex.getMessage());
+            }
+        }
+    }
+
+    private void removeBook() {
+        if (session == null) return;
+        int row = table.getSelectedRow();
+        if (row < 0) { AppTheme.error(this, "Please select a book first."); return; }
+
+        String bookId = (String) model.getValueAt(row, 1);
+        String title = (String) model.getValueAt(row, 2);
+
+        if (JOptionPane.showConfirmDialog(this,
+                "Remove book \"" + title + "\" (" + bookId + ")?\nThis action cannot be undone.",
+                "Confirm Remove", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) return;
+        try {
+            facade.books().deleteBook(session, bookId);
+            refresh(session);
+            AppTheme.success(this, "Book removed from catalogue.");
+        } catch (Exception ex) {
+            AppTheme.error(this, ex.getMessage());
         }
     }
 
