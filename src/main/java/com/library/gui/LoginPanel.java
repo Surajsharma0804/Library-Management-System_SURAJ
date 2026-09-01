@@ -62,15 +62,15 @@ public final class LoginPanel extends JPanel {
         // top row: theme toggle button
         JPanel topRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         topRow.setOpaque(false);
-        topRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        topRow.setAlignmentX(0.5f);
         topRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
         topRow.add(AppTheme.themeBtn());
 
-        // branding logo — load the actual app icon from resources
+        // branding logo
         JLabel logo = new JLabel();
         logo.setPreferredSize(new Dimension(56, 56));
         logo.setMaximumSize(new Dimension(56, 56));
-        logo.setAlignmentX(Component.CENTER_ALIGNMENT);
+        logo.setAlignmentX(0.5f);
         try {
             var iconUrl = getClass().getResource("/images/app-logo.png");
             if (iconUrl != null) {
@@ -81,36 +81,39 @@ public final class LoginPanel extends JPanel {
         } catch (Exception ignored) {}
 
         JLabel title = lbl("University Central Library", AppTheme.H1, AppTheme.fg());
-        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        title.setAlignmentX(0.5f);
         JLabel sub = lbl("Enterprise Library Portal", AppTheme.SMALL, AppTheme.fgSecondary());
-        sub.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sub.setAlignmentX(0.5f);
 
         // role selector
         JLabel roleLbl = fieldLabel("Sign in as");
+        roleLbl.setAlignmentX(0.5f);
         roleBox = AppTheme.comboBox("Administrator", "Librarian", "Student");
         roleBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        roleBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+        roleBox.setAlignmentX(0.5f);
 
         // username input
         JLabel userLbl = fieldLabel("Username");
+        userLbl.setAlignmentX(0.5f);
         userField = AppTheme.textField(20);
         userField.putClientProperty("JTextField.placeholderText", "Enter your username");
         userField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        userField.setAlignmentX(Component.LEFT_ALIGNMENT);
+        userField.setAlignmentX(0.5f);
 
         // password input with show/hide toggle
         JLabel passLbl = fieldLabel("Password");
+        passLbl.setAlignmentX(0.5f);
         passField = AppTheme.passwordField(20);
         passField.putClientProperty("JTextField.placeholderText", "Enter your password");
         passField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        passField.setAlignmentX(Component.LEFT_ALIGNMENT);
+        passField.setAlignmentX(0.5f);
 
         // error banner panel
         errPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 6));
         errPanel.setBackground(AppTheme.isDark() ? new Color(0x99, 0x1B, 0x1B, 40) : new Color(0xFE, 0xE2, 0xE2));
         errPanel.setBorder(BorderFactory.createLineBorder(AppTheme.isDark() ? new Color(0x99, 0x1B, 0x1B) : new Color(0xFC, 0xA5, 0xA5)));
         errPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
-        errPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        errPanel.setAlignmentX(0.5f);
         errPanel.setVisible(false);
 
         errLabel = new JLabel("");
@@ -122,18 +125,18 @@ public final class LoginPanel extends JPanel {
         JButton signIn = AppTheme.primaryBtn("Sign In");
         signIn.setPreferredSize(new Dimension(348, 42));
         signIn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
-        signIn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        signIn.setAlignmentX(0.5f);
         signIn.addActionListener(this::login);
         passField.addActionListener(this::login);
         userField.addActionListener(e -> passField.requestFocusInWindow());
 
         // version footer
         JLabel ver = lbl("Version 2.0.0 • Enterprise Edition", AppTheme.SMALL, AppTheme.fgMuted());
-        ver.setAlignmentX(Component.CENTER_ALIGNMENT);
+        ver.setAlignmentX(0.5f);
 
         // info text for students
         JLabel infoText = lbl("Contact your administrator for login credentials", AppTheme.SMALL, AppTheme.fgMuted());
-        infoText.setAlignmentX(Component.CENTER_ALIGNMENT);
+        infoText.setAlignmentX(0.5f);
 
         card.add(topRow);
         card.add(logo);
@@ -173,7 +176,7 @@ public final class LoginPanel extends JPanel {
     private JLabel fieldLabel(String t) {
         JLabel l = new JLabel(t);
         l.setFont(AppTheme.SMALL_B); l.setForeground(AppTheme.fgSecondary());
-        l.setAlignmentX(Component.LEFT_ALIGNMENT);
+        l.setAlignmentX(0.5f);
         return l;
     }
 
