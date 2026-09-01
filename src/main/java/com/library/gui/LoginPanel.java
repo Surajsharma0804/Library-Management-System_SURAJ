@@ -31,6 +31,7 @@ public final class LoginPanel extends JPanel {
         this.facade = facade;
         this.onSuccess = onSuccess;
         setLayout(new GridBagLayout());
+        setOpaque(true);
         build();
     }
 
@@ -87,6 +88,7 @@ public final class LoginPanel extends JPanel {
         // role selector
         JLabel roleLbl = fieldLabel("Sign in as");
         roleBox = AppTheme.comboBox("Administrator", "Librarian", "Student");
+        roleBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         roleBox.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         // username input
@@ -154,7 +156,15 @@ public final class LoginPanel extends JPanel {
         card.add(Box.createVerticalStrut(10));
         card.add(ver);
 
-        add(card);
+        // Use explicit GridBagConstraints to center the card
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        add(card, gbc);
         revalidate(); repaint();
     }
 
