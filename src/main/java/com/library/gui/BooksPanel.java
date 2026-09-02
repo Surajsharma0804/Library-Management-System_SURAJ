@@ -3,6 +3,8 @@ package com.library.gui;
 import com.library.enums.UserRole;
 import com.library.facade.LibraryFacade;
 import com.library.model.Book;
+import com.library.model.Reservation;
+import com.library.model.Student;
 import com.library.security.Session;
 
 import javax.imageio.ImageIO;
@@ -33,6 +35,10 @@ public final class BooksPanel extends JPanel {
     private JTextField deweyField;
     private JComboBox<String> statusCombo;
     private JButton addBtn;
+    private JButton editBtn;
+    private JButton removeBtn;
+    private JButton borrowBtn;
+    private JButton reserveBtn;
     private Session session;
 
     // Columns: Cover, ID, Title, Author, ISBN, Category, Available, Total, Status
@@ -91,13 +97,21 @@ public final class BooksPanel extends JPanel {
         addBtn.setPreferredSize(new Dimension(120, 38));
         addBtn.addActionListener(e -> addBook());
 
-        JButton editBtn = AppTheme.secondaryBtn("Edit Book");
+        editBtn = AppTheme.secondaryBtn("Edit Book");
         editBtn.setPreferredSize(new Dimension(110, 38));
         editBtn.addActionListener(e -> editBook());
 
-        JButton removeBtn = AppTheme.dangerBtn("Remove");
+        removeBtn = AppTheme.dangerBtn("Remove");
         removeBtn.setPreferredSize(new Dimension(100, 38));
         removeBtn.addActionListener(e -> removeBook());
+
+        borrowBtn = AppTheme.primaryBtn("Borrow");
+        borrowBtn.setPreferredSize(new Dimension(100, 38));
+        borrowBtn.addActionListener(e -> borrowBook());
+
+        reserveBtn = AppTheme.secondaryBtn("Reserve");
+        reserveBtn.setPreferredSize(new Dimension(100, 38));
+        reserveBtn.addActionListener(e -> reserveBook());
 
         // Two-row layout: title on top, actions below
         JPanel hdr2 = new JPanel(new BorderLayout(0, 10));
@@ -109,6 +123,8 @@ public final class BooksPanel extends JPanel {
         acts.add(searchField);
         acts.add(deweyField);
         acts.add(statusCombo);
+        acts.add(borrowBtn);
+        acts.add(reserveBtn);
         acts.add(editBtn);
         acts.add(removeBtn);
         acts.add(addBtn);
@@ -166,23 +182,35 @@ public final class BooksPanel extends JPanel {
             return pill;
         });
 
-        // Right-click context menu
-        JPopupMenu popup = new JPopupMenu();
-        JMenuItem editItem = new JMenuItem("Edit Book");
-        editItem.addActionListener(e -> editBook());
-        JMenuItem removeItem = new JMenuItem("Remove Book");
-        removeItem.addActionListener(e -> removeBook());
-        popup.add(editItem);
-        popup.addSeparator();
-        popup.add(removeItem);
-
+        // Right-click context menu — built dynamically in refresh() based on role
         table.addMouseListener(new MouseAdapter() {
             @Override public void mousePressed(MouseEvent e) { showPopup(e); }
             @Override public void mouseReleased(MouseEvent e) { showPopup(e); }
             private void showPopup(MouseEvent e) {
                 if (e.isPopupTrigger()) {
                     int row = table.rowAtPoint(e.getPoint());
-                    if (row >= 0) { table.setRowSelectionInterval(row, row); popup.show(table, e.getX(), e.getY()); }
+                    if (row >= 0) {
+                        table.setRowSelectionInterval(row, row);
+                        JPopupMenu popup = new JPopupMenu();
+                        boolean isStudent = session != null && session.role() == UserRole.STUDENT;
+                        if (isStudent) {
+                            JMenuItem borrowItem = new JMenuItem("Borrow This Book");
+                            borrowItem.addActionListener(ev -> borrowBook());
+                            JMenuItem reserveItem = new JMenuItem("Reserve This Book");
+                            reserveItem.addActionListener(ev -> reserveBook());
+                            popup.add(borrowItem);
+                            popup.add(reserveItem);
+                        } else {
+                            JMenuItem editItem = new JMenuItem("Edit Book");
+                            editItem.addActionListener(ev -> editBook());
+                            JMenuItem removeItem = new JMenuItem("Remove Book");
+                            removeItem.addActionListener(ev -> removeBook());
+                            popup.add(editItem);
+                            popup.addSeparator();
+                            popup.add(removeItem);
+                        }
+                        popup.show(table, e.getX(), e.getY());
+                    }
                 }
             }
         });
@@ -199,11 +227,13 @@ public final class BooksPanel extends JPanel {
         this.session = s;
         setBackground(AppTheme.bg());
 
-        if (session != null && session.role() == UserRole.STUDENT) {
-            addBtn.setVisible(false);
-        } else {
-            addBtn.setVisible(true);
-        }
+        boolean isStudent = session != null && session.role() == UserRole.STUDENT;
+        // Students: show Borrow/Reserve, hide Add/Edit/Remove
+        addBtn.setVisible(!isStudent);
+        editBtn.setVisible(!isStudent);
+        removeBtn.setVisible(!isStudent);
+        borrowBtn.setVisible(isStudent);
+        reserveBtn.setVisible(isStudent);
 
         load(facade.bookRepo().findAll());
     }
@@ -389,6 +419,50 @@ public final class BooksPanel extends JPanel {
             facade.books().deleteBook(session, bookId);
             refresh(session);
             AppTheme.success(this, "Book removed from catalogue.");
+        } catch (Exception ex) {
+            AppTheme.error(this, ex.getMessage());
+        }
+    }
+
+    private void borrowBook() {
+        if (session == null) return;
+        int row = table.getSelectedRow();
+        if (row < 0) { AppTheme.error(this, "Please select a book to borrow."); return; }
+
+        String bookId = (String) model.getValueAt(row, 1);
+        String bookTitle = (String) model.getValueAt(row, 2);
+        Student student = facade.userRepo().findStudentByUsername(session.username());
+        if (student == null) { AppTheme.error(this, "Student profile not found."); return; }
+
+        if (JOptionPane.showConfirmDialog(this,
+                "Borrow \"" + bookTitle + "\"?",
+                "Confirm Borrow", JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE) != JOptionPane.YES_OPTION) return;
+        try {
+            facade.borrows().issueBook(session, bookId, student.getRegistrationNumber());
+            refresh(session);
+            AppTheme.success(this, "Book \"" + bookTitle + "\" borrowed successfully!");
+        } catch (Exception ex) {
+            AppTheme.error(this, ex.getMessage());
+        }
+    }
+
+    private void reserveBook() {
+        if (session == null) return;
+        int row = table.getSelectedRow();
+        if (row < 0) { AppTheme.error(this, "Please select a book to reserve."); return; }
+
+        String bookId = (String) model.getValueAt(row, 1);
+        String bookTitle = (String) model.getValueAt(row, 2);
+        Student student = facade.userRepo().findStudentByUsername(session.username());
+        if (student == null) { AppTheme.error(this, "Student profile not found."); return; }
+
+        if (JOptionPane.showConfirmDialog(this,
+                "Reserve \"" + bookTitle + "\"?",
+                "Confirm Reserve", JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE) != JOptionPane.YES_OPTION) return;
+        try {
+            Reservation r = facade.reservations().reserve(session, bookId, student.getRegistrationNumber());
+            refresh(session);
+            AppTheme.success(this, "Reserved! Queue position: #" + r.getQueuePosition());
         } catch (Exception ex) {
             AppTheme.error(this, ex.getMessage());
         }
